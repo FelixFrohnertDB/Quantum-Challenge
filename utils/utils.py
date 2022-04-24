@@ -7,6 +7,7 @@ from qiskit.algorithms import Grover
 from qiskit.algorithms import AmplificationProblem
 from qiskit import Aer
 from qiskit.quantum_info import Statevector
+from copy import deepcopy
 
 max_x = 30
 min_x = -30
@@ -300,7 +301,7 @@ def tuple_to_tuple_arr(tuple):
 
 
 # for path in tuple_path_arr:
-def tuple_path_to_trajec(tuple_path, start_index=0):
+def tuple_path_to_trajec_2(tuple_path, start_index=0):
     shifted_path = []
     for tuple in tuple_path:
         tuple_arr, t_inx = tuple_to_tuple_arr(tuple)
@@ -362,6 +363,83 @@ def tuple_path_to_trajec(tuple_path, start_index=0):
         shifted_path[i + 1]["delta_t"] = np.timedelta64(point_t, 's')
 
     return shifted_path
+
+
+def tuple_path_to_trajec(tuple_path, start_index=0, start_time=""):
+    shifted_path = []
+    for tuple in tuple_path:
+        tuple_arr, t_inx = tuple_to_tuple_arr(tuple)
+        x = climate_df.loc[climate_df["tuple"] == tuple_arr, "LONGITUDE"].to_numpy()[0]
+        y = climate_df.loc[climate_df["tuple"] == tuple_arr, "LATITUDE"].to_numpy()[0]
+        z = climate_df.loc[climate_df["tuple"] == tuple_arr, "FL"].to_numpy()[0][t_inx]
+
+        shifted_path.append({"x": x,
+                             "y": y,
+                             "z": z
+                             })
+
+    if start_time == "":
+        shifted_path[0]["t"] = np.datetime64('2018-06-23 ' + flight_df["start_time"].iloc[start_index])
+        shifted_path[0]["delta_t"] = np.timedelta64(0, 's')
+    else:
+        shifted_path[0]["t"] = start_time[0]
+        shifted_path[0]["delta_t"] = start_time[1]
+
+    for i in range(len(shifted_path) - 1):
+
+        point_x = x_to_km(np.abs(shifted_path[i + 1]["x"] - shifted_path[i]["x"]))
+        point_y = y_to_km(np.abs(shifted_path[i + 1]["y"] - shifted_path[i]["y"]))
+        point_z = shifted_path[i + 1]["z"] - shifted_path[i]["z"]
+
+        if point_z == 0:
+            point_dist = point_x + point_y
+            point_t = int(3600 * point_dist / (find_fuel(cruise_df, shifted_path[i + 1]["z"])[0] * 1.852))
+
+        elif point_z > 0:
+            z_0 = shifted_path[i]["z"]
+            z_1 = shifted_path[i + 1]["z"]
+
+            v_0, roc_0, _ = find_fuel_climb(climb_df, z_0)
+            v_1, roc_1, _ = find_fuel_climb(climb_df, z_1)
+            delta_t_c_0 = 60 * 1000 / (roc_0)  # in seconds
+            delta_t_c_1 = 60 * 1000 / (roc_1)  # in sec
+
+            dist_climb = np.sqrt(
+                (delta_t_c_0 * v_0 * 1.852 / 3600 + delta_t_c_1 * v_1 * 1.852 / 3600) ** 2 - 0.61 ** 2)  # km
+
+            point_dist = point_x + point_y - dist_climb
+            point_t = int(3600 * point_dist / (find_fuel(cruise_df, shifted_path[i + 1]["z"])[0] * 1.852))
+            point_t += int(delta_t_c_0 + delta_t_c_1)
+
+        elif point_z < 0:
+            z_0 = shifted_path[i]["z"]
+            z_1 = shifted_path[i + 1]["z"]
+
+            v_0, roc_0, _ = find_fuel_climb(descent_df, z_0)
+            v_1, roc_1, _ = find_fuel_climb(descent_df, z_1)
+            delta_t_c_0 = 60 * 1000 / (roc_0)  # in seconds
+            delta_t_c_1 = 60 * 1000 / (roc_1)  # in sec
+
+            dist_climb = np.sqrt(
+                (delta_t_c_0 * v_0 * 1.852 / 3600 + delta_t_c_1 * v_1 * 1.852 / 3600) ** 2 - 0.61 ** 2)  # km
+
+            point_dist = point_x + point_y - dist_climb
+            point_t = int(3600 * point_dist / (find_fuel(cruise_df, shifted_path[i + 1]["z"])[0] * 1.852))
+            point_t += int(delta_t_c_0 + delta_t_c_1)
+        else:
+            print("Here, sth wrong", point_x, point_y, point_z)
+
+        shifted_path[i + 1]["t"] = shifted_path[i]["t"] + np.timedelta64(point_t, 's')
+        shifted_path[i + 1]["delta_t"] = np.timedelta64(point_t, 's')
+
+    return shifted_path
+
+
+def bitstr_to_traj(bit_string, confl_arr, input_traj):
+    traj = deepcopy(input_traj)
+    for bit, confl in zip(bit_string, confl_arr):
+        changed_traj = binary_to_traj(bit, confl, traj)
+    return changed_traj
 
 
 m_val = -np.min(climate_df["MERGED"].to_numpy())
@@ -513,6 +591,114 @@ def grover_search_hw(n_qubits, index, device):
     result = grover.amplify(problem)
 
     res = result.top_measurement
-    found_inx = np.where(np.array(sv_label) == res)[0][0]
+
+    found_inx = np.where(np.array(sv_labels) == res)[0][0]
 
     return str(res), found_inx
+
+
+def constraint_n_planes(trajec_arr):
+    flat_traj = []
+    for cnt_1, sublist in enumerate(trajec_arr):
+        for cnt_2, item in enumerate(sublist):
+            temp_list = list(item.values())
+            temp_list.append(cnt_1)
+            temp_list.append(cnt_2)
+            flat_traj.append(temp_list)  # trajec index and point in trajec index
+    flat_traj = np.array(flat_traj)
+
+    _, index, count = np.unique(np.array(flat_traj[:, 0:3], dtype=float), axis=0, return_index=True, return_counts=True)
+
+    # remove if xyz are only in complete traj once
+    rem_index = []
+
+    for (i, c) in zip(index, count):
+        if c == 1:
+            rem_index.append(i)
+
+    rem_flat_traj = np.delete(flat_traj, rem_index, axis=0)
+
+    # if time difference shows that they are in voxel at the same time
+    overlap_dict = {}
+    for cnt, check_arr in enumerate(rem_flat_traj):
+        for test_arr in rem_flat_traj[cnt + 1:]:
+            if np.array_equal(check_arr[0:3], test_arr[0:3]):
+                time_diff = np.abs(check_arr[3] - test_arr[3])
+                if time_diff < check_arr[4]:
+
+                    temp_pos = (check_arr[-2], check_arr[-1])
+                    if temp_pos in overlap_dict:
+                        overlap_dict[temp_pos] += [test_arr]
+                    else:
+                        overlap_dict[temp_pos] = [test_arr]
+
+    cnt_confl = 0
+    important_confl_dict = {}
+    for k, v in overlap_dict.items():
+        if len(v) > 2:
+            cnt_confl += len(v)
+            important_confl_dict[k] = v
+
+    return cnt_confl, important_confl_dict
+
+
+# take binary value and and translate it to changed traj  arr
+def binary_to_traj(b_val, conflict_point, input_traj):
+    traj = deepcopy(input_traj)
+
+    con_p_m1 = traj[conflict_point[0]][conflict_point[1] - 1]
+    m_tup = xyz_to_tuple(con_p_m1["x"], con_p_m1["y"], con_p_m1["z"])
+
+    con_p = traj[conflict_point[0]][conflict_point[1]]
+
+    # problem dont allow to go beyond boundaries
+    # sol remove
+
+    con_p["z"] += (-20 + b_val * 40)
+    change_tup = xyz_to_tuple(con_p["x"], con_p["y"], con_p["z"])
+
+    con_p_p1 = traj[conflict_point[0]][conflict_point[1] + 1]
+    p_tup = xyz_to_tuple(con_p_p1["x"], con_p_p1["y"], con_p_p1["z"])
+
+    temp_path = tuple_path_to_trajec([m_tup, change_tup], start_time=[con_p_m1["t"], con_p_m1["delta_t"]])
+    new_t = temp_path[1]["t"]
+    new_delta_t = temp_path[1]["delta_t"]
+
+    con_p["t"] = new_t
+    con_p["delta_t"] = new_delta_t
+
+    temp_path = tuple_path_to_trajec([change_tup, p_tup], start_time=[con_p["t"], con_p["delta_t"]])
+    new_t = temp_path[1]["t"]
+    new_delta_t = temp_path[1]["delta_t"]
+
+    con_p_p1["t"] = new_t
+    con_p_p1["delta_t"] = new_delta_t
+
+    return traj
+
+
+def set_new_cost(confl_arr, de_conflicted_traj_arr):
+    for row_inx in confl_arr[:, 0]:
+        flight_df.iat[row_inx, flight_df.columns.get_loc('cost')] = C(de_conflicted_traj_arr[row_inx])
+    return np.sum(flight_df["cost"].to_numpy())
+
+
+def get_new_cost(confl_arr, de_conflicted_traj_arr, df):
+    c_arr = df["cost"].to_numpy()
+    c_sum = 0
+    for cnt, c in enumerate(c_arr):
+        if cnt not in confl_arr[:, 0]:
+            c_sum += c
+    for c_inx in confl_arr[:, 0]:
+        c_sum += C(de_conflicted_traj_arr[c_inx])
+    return c_sum
+
+
+def vqe_cost(bit_string, confl_arr, traj_arr, df):
+    traj_arr = traj_arr[:]
+    p = 0.1
+    de_conflicted_traj_arr = bitstr_to_traj(bit_string, confl_arr, traj_arr)
+    improved_cost = get_new_cost(confl_arr, de_conflicted_traj_arr, df)
+    penalty = p * constraint_n_planes(de_conflicted_traj_arr)[0]
+
+    return improved_cost + penalty / 5e7
