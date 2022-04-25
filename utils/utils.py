@@ -45,7 +45,8 @@ convert_dict = {
 
 
 def xyz_to_tuple(x, y, z):
-    """return km"""
+    """Input: x,y,z coordinates
+       Output: coordinates as index in graph"""
     if np.isnan(z):
         return float("nan"), float("nan"), float("nan")
     else:
@@ -53,35 +54,35 @@ def xyz_to_tuple(x, y, z):
 
 
 def x_to_km(deg):
-    """return km"""
+    """Degree to km"""
     return deg * 85
 
 
 def y_to_km(deg):
-    """return km"""
+    """Degree to km"""
     return deg * 111
 
 
 def find_x(x_hat):
-    """return km"""
+    """Find nearest x in array"""
     inx = (np.abs(x_arr - x_hat)).argmin()
     return x_arr[inx]
 
 
 def find_y(y_hat):
-    """return km"""
+    """Find nearest y in array"""
     inx = (np.abs(y_arr - y_hat)).argmin()
     return y_arr[inx]
 
 
 def find_z(z_hat):
-    """return km"""
+    """Find nearest z in array"""
     inx = (np.abs(z_arr - z_hat)).argmin()
     return z_arr[inx]
 
 
 def find_z_arr(z_hat):
-    """return km"""
+    """Find nearest z array in array"""
     nearest_val = z_hat
     difference = z_hat
 
@@ -104,7 +105,7 @@ def find_fuel(df, fL_val):
 
 
 def find_fuel_climb(df, fL_val):
-    """"returns TAS and fuel consumption in kg/min """
+    """"returns TAS and fuel consumption in kg/min of climb or descent"""
     inx = (np.abs(df["FL"].to_numpy() - fL_val)).argmin()
 
     cl_inx = df.index[inx]
@@ -113,15 +114,12 @@ def find_fuel_climb(df, fL_val):
 
 
 def consumed_fuel(trajectory):
-    """return km"""
+    """Return consumed fuel of trajectory"""
     c_fuel = 0
 
     c_fuel_dict = {0: [trajectory[0]["x"], trajectory[0]["y"], trajectory[0]["z"], 0]}
     for cnt in range(len(trajectory) - 1):
         temp_fuel = 0
-
-        delta_x = np.abs(trajectory[cnt + 1]["x"] - trajectory[cnt]["x"])
-        delta_y = np.abs(trajectory[cnt + 1]["y"] - trajectory[cnt]["y"])
         z_0 = trajectory[cnt]["z"]
         z_1 = trajectory[cnt + 1]["z"]
 
@@ -168,7 +166,7 @@ def consumed_fuel(trajectory):
 
 
 def time_traveled(trajectory):
-    """return km"""
+    """return total time traveled"""
     s_time = trajectory[0]["t"]
     e_time = trajectory[-1]["t"]
 
@@ -176,13 +174,10 @@ def time_traveled(trajectory):
 
 
 def find_climate(df, x, y, z, t):
-    """return km"""
+    """return merged value at nearest x,y,z,t coordinates"""
     scaled_x = find_x(x)
     scaled_y = find_y(y)
     scaled_z = find_z_arr(z)
-
-    temp_series = df.loc[
-        (df["LONGITUDE"] == scaled_x) & (df["LATITUDE"] == scaled_y) & (df["FL"] == scaled_z), "TIME"].dt.hour
 
     temp_series = df.loc[(df["LONGITUDE"] == scaled_x) & (df["LATITUDE"] == scaled_y), "FL"].to_dict()
 
@@ -203,13 +198,13 @@ def find_climate(df, x, y, z, t):
 
 
 def rad_change_direction(v, angle):
-    """return km"""
+    """return radius of direction change"""
     rad = angle * np.pi / 180
     return v ** 2 / (np.tan(rad)) * 0.0000269
 
 
 def C(trajectory):
-    """return km"""
+    """return climate cost of trajectory"""
     c_fuel = consumed_fuel(trajectory)[0]  # kg
     effect_sum = np.sum(
         [find_climate(climate_df, x=point["x"], y=point["y"], z=point["z"], t=point["t"]) for point in trajectory])
@@ -228,6 +223,7 @@ min_z_tuple = 0
 
 
 def get_3d_graph():
+    """return 3D grid graph of flight space"""
     G = nx.grid_graph(dim=(z_arr.shape[0], y_arr.shape[0], x_arr.shape[0]))
 
     for e in G.edges():
@@ -276,6 +272,7 @@ def get_3d_graph():
 
 
 def tuple_to_tuple_arr(tuple):
+    """" find nearest tuple array in climate dataframe"""
     x, y, z = tuple
     fl = 20 * z + 100
     match_z_arr = find_z_arr(fl)
@@ -366,6 +363,7 @@ def tuple_path_to_trajec_2(tuple_path, start_index=0):
 
 
 def tuple_path_to_trajec(tuple_path, start_index=0, start_time=""):
+    """ Take an array of tuples and return the corresponding trajectory"""
     shifted_path = []
     for tuple in tuple_path:
         tuple_arr, t_inx = tuple_to_tuple_arr(tuple)
@@ -436,6 +434,8 @@ def tuple_path_to_trajec(tuple_path, start_index=0, start_time=""):
 
 
 def bitstr_to_traj(bit_string, confl_arr, input_traj):
+    """ Take bitstring and return changed trajectory.
+    The bit value changed the flight altitude by +-20FL at the confilct point."""
     traj = deepcopy(input_traj)
     for bit, confl in zip(bit_string, confl_arr):
         changed_traj = binary_to_traj(bit, confl, traj)
@@ -446,6 +446,7 @@ m_val = -np.min(climate_df["MERGED"].to_numpy())
 
 
 def c_weight(df, tuple_0, tuple_1):
+    """ Compute climate cost to move from voxel 0 to 1 """
     tuple_arr_0, t0_pos = tuple_to_tuple_arr(tuple_0)
     tuple_arr_1, t1_pos = tuple_to_tuple_arr(tuple_1)
 
@@ -464,6 +465,7 @@ def c_weight(df, tuple_0, tuple_1):
 
 
 def add_weights_graph(G):
+    """ Add climate costs to graph"""
     for e in G.edges():
         try:
             G[e[0]][e[1]]["w"] = c_weight(climate_df, e[0], e[1])
@@ -473,6 +475,7 @@ def add_weights_graph(G):
 
 
 def gen_rand_path(G, x_s, y_s, z, x_e, y_e, size):
+    """ Compute random paths between start and end point at all altitudes """
     rand_paths = [itertools.islice(
         nx.shortest_simple_paths(G, source=xyz_to_tuple(x_s, y_s, z), target=xyz_to_tuple(x_e, y_e, z_e), weight="w"),
         size) for z_e in z_arr]
@@ -490,6 +493,7 @@ def gen_rand_path(G, x_s, y_s, z, x_e, y_e, size):
 
 
 def gen_shortest_path(G, x_s, y_s, z_s, x_e, y_e, z_e):
+    """ Compute shortest path between start and end point """
     shortest_path = itertools.islice(
         nx.shortest_simple_paths(G, source=xyz_to_tuple(x_s, y_s, z_s), target=xyz_to_tuple(x_e, y_e, z_e), weight="w"),
         1)
@@ -506,15 +510,13 @@ def gen_shortest_path(G, x_s, y_s, z_s, x_e, y_e, z_e):
     return tuple_path_arr
 
 
-def graph_plot_scale(z):
-    return (z - 99) / (400 - 99)
-
-
 def convert_tuple(tup):
+    """ Tuple to string """
     return ''.join(map(str, tup))
 
 
 def grover_search(n_qubits, index):
+    """ Grovers search of n_qubits where index marks the item of interest """
     n_iter = int(np.pi / 4 * np.sqrt(2 ** n_qubits))
     aer_simulator = Aer.get_backend('aer_simulator')
     lst = list(itertools.product([0, 1], repeat=n_qubits))
@@ -534,6 +536,7 @@ def grover_search(n_qubits, index):
 
 
 def cost_grover(x, basis_state_to_trajec):
+    """ Cost function used in Grovers search """
     return C(basis_state_to_trajec[x])
 
 
@@ -578,6 +581,7 @@ def find_min_cost_quantum(state_arr, basis_state_to_trajec, hw, device=""):
 
 
 def grover_search_hw(n_qubits, index, device):
+    """ Grovers search of n_qubits where index marks the item of interest and device links to the quantum hardware"""
     n_iter = int(np.pi / 4 * np.sqrt(2 ** n_qubits))
     lst = list(itertools.product([0, 1], repeat=n_qubits))
     sv_labels = [convert_tuple(l) for l in lst]
@@ -598,6 +602,7 @@ def grover_search_hw(n_qubits, index, device):
 
 
 def constraint_n_planes(trajec_arr):
+    """ Find overlap in flight schedule """
     flat_traj = []
     for cnt_1, sublist in enumerate(trajec_arr):
         for cnt_2, item in enumerate(sublist):
@@ -642,17 +647,14 @@ def constraint_n_planes(trajec_arr):
     return cnt_confl, important_confl_dict
 
 
-# take binary value and and translate it to changed traj  arr
 def binary_to_traj(b_val, conflict_point, input_traj):
+    """ Take binary value and translate it to changed trajectory array """
     traj = deepcopy(input_traj)
 
     con_p_m1 = traj[conflict_point[0]][conflict_point[1] - 1]
     m_tup = xyz_to_tuple(con_p_m1["x"], con_p_m1["y"], con_p_m1["z"])
 
     con_p = traj[conflict_point[0]][conflict_point[1]]
-
-    # problem dont allow to go beyond boundaries
-    # sol remove
 
     con_p["z"] += (-20 + b_val * 40)
     change_tup = xyz_to_tuple(con_p["x"], con_p["y"], con_p["z"])
@@ -684,6 +686,7 @@ def set_new_cost(confl_arr, de_conflicted_traj_arr):
 
 
 def get_new_cost(confl_arr, de_conflicted_traj_arr, df):
+    """ Get cost of de-conflicted trajectory schedule """
     c_arr = df["cost"].to_numpy()
     c_sum = 0
     for cnt, c in enumerate(c_arr):
@@ -695,6 +698,7 @@ def get_new_cost(confl_arr, de_conflicted_traj_arr, df):
 
 
 def vqe_cost(bit_string, confl_arr, traj_arr, df):
+    """ Get cost for vqe """
     traj_arr = traj_arr[:]
     p = 0.1
     de_conflicted_traj_arr = bitstr_to_traj(bit_string, confl_arr, traj_arr)
@@ -705,6 +709,7 @@ def vqe_cost(bit_string, confl_arr, traj_arr, df):
 
 
 def get_classical_traj():
+    """ Compute shortest path trajectory """
     classical_trajectory_arr = []
     for index, t, z, x_s, y_s, x_e, y_e in flight_df.to_numpy():
 
