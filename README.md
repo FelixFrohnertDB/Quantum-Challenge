@@ -1,6 +1,5 @@
 # Quantum-Challenge
-The Deloitte Quantum Climate Challenge 2022 aims to explore how the contribution of avia-
-tion to the anthropogenic climate change can be reduced by optimizing flight routes using hybrid
+The Deloitte Quantum Climate Challenge 2022 aims to explore how the contribution of aviation to the anthropogenic climate change can be reduced by optimizing flight routes using hybrid
 quantum-classical algorithms. The case-study includes a sample of multiple flights with different
 flight paths and flight schedules. The flight routes are to be optimized in such a way that the
 warming of the climate is minimal, taking into account all flights, while at the same time being
