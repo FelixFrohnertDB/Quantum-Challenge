@@ -702,3 +702,47 @@ def vqe_cost(bit_string, confl_arr, traj_arr, df):
     penalty = p * constraint_n_planes(de_conflicted_traj_arr)[0]
 
     return improved_cost + penalty / 5e7
+
+
+def get_classical_traj():
+    classical_trajectory_arr = []
+    for index, t, z, x_s, y_s, x_e, y_e in flight_df.to_numpy():
+
+        x_tr = np.linspace(x_s, x_e, 100)
+        y_tr = np.linspace(y_s, y_e, 100)
+
+        temp_trajec = []
+        for i in range(99):
+            temp_trajec.append({"x": x_tr[i + 1], "y": y_tr[i + 1]})
+
+        traj_voxel = []
+
+        for c_1, i in enumerate(x_arr):
+            for c_2, j in enumerate(y_arr):
+                for c_3, l in enumerate(temp_trajec):
+                    if i == x_arr[(np.abs(x_arr - temp_trajec[c_3]["x"])).argmin()] and j == y_arr[
+                        (np.abs(y_arr - temp_trajec[c_3]["y"])).argmin()]:
+                        traj_voxel += [[x_arr[c_1], y_arr[c_2]]]
+
+        traj_voxel_temp = np.unique(traj_voxel, axis=0)
+
+        traj_voxel = [traj_voxel_temp[0]]
+        for cnt, (x, y) in enumerate(traj_voxel_temp[1:]):
+            if x != traj_voxel_temp[cnt][0] and y != traj_voxel_temp[cnt][1]:
+                traj_voxel.append([x, traj_voxel_temp[cnt][1]])
+                traj_voxel.append([x, y])
+            else:
+                traj_voxel.append([x, y])
+
+        traj = [{"x": x_s, "y": y_s, "z": z, "t": np.datetime64('2018-06-23 ' + t), "delta_t": np.timedelta64(0, 's')}]
+        for i in range(len(traj_voxel) - 1):
+            point_x = ut.x_to_km(traj_voxel[i + 1][0] - traj_voxel[i][0])
+            point_y = ut.y_to_km(traj_voxel[i + 1][1] - traj_voxel[i][1])
+            point_dist = np.sqrt(point_x ** 2 + point_y ** 2)
+
+            point_t = int(3600 * point_dist / (ut.find_fuel(cruise_df, z)[0] * 1.852))
+
+            traj.append({"x": traj_voxel[i + 1][0], "y": traj_voxel[i + 1][1], "z": z,
+                         "t": traj[i]["t"] + np.timedelta64(point_t, 's'), "delta_t": np.timedelta64(point_t, 's')})
+        classical_trajectory_arr.append(traj)
+    return classical_trajectory_arr
