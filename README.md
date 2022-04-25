@@ -1,13 +1,10 @@
 # Quantum-Challenge
-The Deloitte Quantum Climate Challenge 2022 aims to explore how the contribution
-of air travel to the anthropogenic (human made) climate change can be reduced by
-optimizing flight trajectories using quantum, quantum-classical hybrid, or quantum inspired solutions. The challenge scenario includes a traffic sample of multiple flights with
-various paths and schedules. The flight trajectories are to be optimized so that the
-overall warming climate effect considering all flights is minimal while being compliant
-with flight safety regulations. Different climate effects depending on the fuel burn, the
-geographical location, altitude, weather conditions and timings are to be considered. A
-detailed problem motivation as well as a description of the mathematical formulation
-and the constrains are given in this document.
-Please be aware that assumptions and simplifications were made to allow the development of a solution concept and a first algorithm within the given time frame of this
-challenge. This concerns in particular - but not exclusively - the description of the flight
-parameters and flight regulations.
+The Deloitte Quantum Climate Challenge 2022 aims to explore how the contribution of avia-
+tion to the anthropogenic climate change can be reduced by optimizing flight routes using hybrid
+quantum-classical algorithms. The case-study includes a sample of multiple flights with different
+flight paths and flight schedules. The flight routes are to be optimized in such a way that the
+warming of the climate is minimal, taking into account all flights, while at the same time being
+compatible with flight safety regulations. Different climate effects occur depending on fuel consumption, the geographic location, flight altitude, weather conditions, and flight times. To solve
+this problem efficiently on a quantum computer, the problem was split into two separate combinatorial optimization problems: Finding a set of climate-optimized trajectories and disentangling the
+resulting flight plan. The first problem is solved using Grover’s search algorithms, and the second
+problem is solved using the filtering variational quantum eigensolver.
