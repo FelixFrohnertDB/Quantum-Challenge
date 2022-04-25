@@ -736,11 +736,11 @@ def get_classical_traj():
 
         traj = [{"x": x_s, "y": y_s, "z": z, "t": np.datetime64('2018-06-23 ' + t), "delta_t": np.timedelta64(0, 's')}]
         for i in range(len(traj_voxel) - 1):
-            point_x = ut.x_to_km(traj_voxel[i + 1][0] - traj_voxel[i][0])
-            point_y = ut.y_to_km(traj_voxel[i + 1][1] - traj_voxel[i][1])
+            point_x = x_to_km(traj_voxel[i + 1][0] - traj_voxel[i][0])
+            point_y = y_to_km(traj_voxel[i + 1][1] - traj_voxel[i][1])
             point_dist = np.sqrt(point_x ** 2 + point_y ** 2)
 
-            point_t = int(3600 * point_dist / (ut.find_fuel(cruise_df, z)[0] * 1.852))
+            point_t = int(3600 * point_dist / (find_fuel(cruise_df, z)[0] * 1.852))
 
             traj.append({"x": traj_voxel[i + 1][0], "y": traj_voxel[i + 1][1], "z": z,
                          "t": traj[i]["t"] + np.timedelta64(point_t, 's'), "delta_t": np.timedelta64(point_t, 's')})
