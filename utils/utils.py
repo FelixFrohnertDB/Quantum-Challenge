@@ -551,7 +551,7 @@ def find_min_cost_quantum(state_arr, basis_state_to_trajec, hw, device=""):
     # l = 8/7
 
     N = len(state_arr)
-    n_qubits = np.log(N) / np.log(2)
+    n_qubits = int(np.log(N) / np.log(2))
 
     while G < 22.5 * np.sqrt(N) + 1.4 * np.log(N) ** 2:
 
@@ -564,9 +564,9 @@ def find_min_cost_quantum(state_arr, basis_state_to_trajec, hw, device=""):
 
         # Perform Grover’s search with r rotation to find a state
         if hw:
-            x, x_inx = grover_search_hw(n_qubits=5, index=r, device=device)
+            x, x_inx = grover_search_hw(n_qubits=n_qubits, index=r, device=device)
         else:
-            x, x_inx = grover_search(n_qubits=5, index=r)
+            x, x_inx = grover_search(n_qubits=n_qubits, index=r)
 
         G = G + r
 
