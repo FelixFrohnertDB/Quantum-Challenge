@@ -25,11 +25,11 @@ x_arr = np.arange(min_x, max_x + spacing_xy, spacing_xy)
 y_arr = np.arange(min_y, max_y + spacing_xy, spacing_xy)
 z_arr = np.arange(min_z, max_z + spacing_z, spacing_z)
 
-cruise_df = pd.read_pickle("../data/cruise_df.pkl")
-climb_df = pd.read_pickle("../data/climb_df.pkl")
-descent_df = pd.read_pickle("../data/descent_df.pkl")
-climate_df = pd.read_pickle("../data/climate_df.pkl")
-flight_df = pd.read_csv("../data/flights.csv", sep=";")
+cruise_df = pd.read_pickle("data/cruise_df.pkl")
+climb_df = pd.read_pickle("data/climb_df.pkl")
+descent_df = pd.read_pickle("data/descent_df.pkl")
+climate_df = pd.read_pickle("data/climate_df.pkl")
+flight_df = pd.read_csv("data/flights.csv", sep=";")
 
 convert_dict = {
     600: (100, 120, 140),
@@ -530,7 +530,7 @@ def grover_search(n_qubits, index):
     result = grover.amplify(problem)
 
     res = result.top_measurement if result.oracle_evaluation else False
-    found_inx = np.where(np.array(sv_label) == res)[0][0]
+    found_inx = np.where(np.array(sv_label,dtype=object) == res)[0][0]
 
     return str(res), found_inx
 
@@ -596,7 +596,7 @@ def grover_search_hw(n_qubits, index, device):
 
     res = result.top_measurement
 
-    found_inx = np.where(np.array(sv_labels) == res)[0][0]
+    found_inx = np.where(np.array(sv_labels, dtype=object) == res)[0][0]
 
     return str(res), found_inx
 
@@ -610,7 +610,7 @@ def constraint_n_planes(trajec_arr):
             temp_list.append(cnt_1)
             temp_list.append(cnt_2)
             flat_traj.append(temp_list)  # trajec index and point in trajec index
-    flat_traj = np.array(flat_traj)
+    flat_traj = np.array(flat_traj, dtype=object)
 
     _, index, count = np.unique(np.array(flat_traj[:, 0:3], dtype=float), axis=0, return_index=True, return_counts=True)
 

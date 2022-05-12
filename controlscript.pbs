@@ -1,0 +1,14 @@
+#!/bin/sh
+#PBS -W group_list=ku_00067 -A ku_00067
+#PBS -l nodes=1:ppn=1
+#PBS -l walltime=06:00:00
+#PBS -l mem=3gb
+
+## Load all required modules for the job
+module load tools
+module load anaconda3/2020.07
+
+cd $PBS_O_WORKDIR
+
+/usr/bin/time python3 run.py
+
