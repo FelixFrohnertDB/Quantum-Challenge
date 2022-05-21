@@ -1,3 +1,7 @@
+# Presentation
+The slides used for the final pitch of the competition can be accessed via the following link:
+https://docs.google.com/presentation/d/1ykRrBzCtyXQL5KJPWq4Q7lcP9V0t40od7l0uFsD5T3E/edit?usp=sharing
+
 # Quantum-Challenge
 The Deloitte Quantum Climate Challenge 2022 aims to explore how the contribution of aviation to the anthropogenic climate change can be reduced by optimizing flight routes using hybrid
 quantum-classical algorithms. The case-study includes a sample of multiple flights with different
