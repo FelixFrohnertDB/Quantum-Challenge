@@ -1,6 +1,8 @@
 # Presentation
 The slides used for the final pitch of the competition can be accessed via the following link:
 https://docs.google.com/presentation/d/1ykRrBzCtyXQL5KJPWq4Q7lcP9V0t40od7l0uFsD5T3E/edit?usp=sharing
+More information on the challenge and the pitch event can be found via the following link:
+https://app.ekipa.de/challenges/deloitte-quantum/brief
 
 # Quantum-Challenge
 The Deloitte Quantum Climate Challenge 2022 aims to explore how the contribution of aviation to the anthropogenic climate change can be reduced by optimizing flight routes using hybrid
