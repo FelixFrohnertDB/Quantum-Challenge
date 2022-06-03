@@ -25,11 +25,11 @@ x_arr = np.arange(min_x, max_x + spacing_xy, spacing_xy)
 y_arr = np.arange(min_y, max_y + spacing_xy, spacing_xy)
 z_arr = np.arange(min_z, max_z + spacing_z, spacing_z)
 
-cruise_df = pd.read_pickle("data/cruise_df.pkl")
-climb_df = pd.read_pickle("data/climb_df.pkl")
-descent_df = pd.read_pickle("data/descent_df.pkl")
-climate_df = pd.read_pickle("data/climate_df.pkl")
-flight_df = pd.read_csv("data/flights.csv", sep=";")
+cruise_df = pd.read_pickle("../data/cruise_df.pkl")
+climb_df = pd.read_pickle("../data/climb_df.pkl")
+descent_df = pd.read_pickle("../data/descent_df.pkl")
+climate_df = pd.read_pickle("../data/climate_df.pkl")
+flight_df = pd.read_csv("../data/flights.csv", sep=";")
 
 convert_dict = {
     600: (100, 120, 140),
@@ -433,15 +433,6 @@ def tuple_path_to_trajec(tuple_path, start_index=0, start_time=""):
     return shifted_path
 
 
-def bitstr_to_traj(bit_string, confl_arr, input_traj):
-    """ Take bitstring and return changed trajectory.
-    The bit value changed the flight altitude by +-20FL at the confilct point."""
-    traj = deepcopy(input_traj)
-    for bit, confl in zip(bit_string, confl_arr):
-        changed_traj = binary_to_traj(bit, confl, traj)
-    return changed_traj
-
-
 m_val = -np.min(climate_df["MERGED"].to_numpy())
 
 
@@ -530,7 +521,7 @@ def grover_search(n_qubits, index):
     result = grover.amplify(problem)
 
     res = result.top_measurement if result.oracle_evaluation else False
-    found_inx = np.where(np.array(sv_label,dtype=object) == res)[0][0]
+    found_inx = np.where(np.array(sv_label, dtype=object) == res)[0][0]
 
     return str(res), found_inx
 
@@ -647,7 +638,170 @@ def constraint_n_planes(trajec_arr):
     return cnt_confl, important_confl_dict
 
 
-def binary_to_traj(b_val, conflict_point, input_traj):
+def comp_confl(x, y, z, un_coord_dict, confl_arr):
+    try:
+        v = np.array(un_coord_dict[str(int(x)) + "_" + str(int(y)) + "_" + str(int(z))])
+    except:
+        return 0
+
+    found = False
+    for inx, i in enumerate(v):
+        if i[2] == confl_arr[0] and i[3] == confl_arr[1]:
+            found = True
+            break
+
+    if not found:
+        return 0
+    v[[0, inx]] = v[[inx, 0]]
+
+    cnt = 0
+    for inx in range(len(v)):
+        time_diff = np.abs(v[0][0] - v[inx][0])
+        if time_diff < v[0][1]:
+            cnt += 1
+    if cnt > 3:
+        return cnt
+    else:
+        return 0
+
+
+def unique_coord(trajec_arr):
+    tr_arr = deepcopy(trajec_arr)
+    for cnt_1, tr in enumerate(tr_arr):
+        for cnt_2, point in enumerate(tr):
+            point["tr_inx"] = cnt_1
+            point["pn_inx"] = cnt_2
+
+    flat_traj = []
+    for cnt_1, sublist in enumerate(tr_arr):
+        for cnt_2, item in enumerate(sublist):
+            temp_list = list(item.values())
+            flat_traj.append(temp_list)  # trajec index and point in trajec index
+    flat_traj = np.array(flat_traj, dtype=object)
+
+    unique_coord, index, count = np.unique(np.array(flat_traj[:, 0:3], dtype=float), axis=0, return_index=True,
+                                           return_counts=True)
+
+    unique_coord_dict = {}
+    for x, y, z in unique_coord:
+        unique_coord_dict[str(int(x)) + "_" + str(int(y)) + "_" + str(int(z))] = []
+
+    for point in flat_traj:
+        x, y, z, t, delta_t, tr, pn = point
+        unique_coord_dict[str(int(x)) + "_" + str(int(y)) + "_" + str(int(z))] += [[t, delta_t, tr, pn]]
+    return unique_coord_dict
+
+
+def get_confl_arr(un_coord_dict):
+    confl_arr = []
+    for k, v in un_coord_dict.items():
+        cnt = 0
+        if len(v) > 4:
+            temp_confl = []
+            cnt = 0
+            for inx in range(len(v)):
+
+                for inx_2 in range(inx, len(v)):
+                    time_diff = np.abs(v[inx][0] - v[inx_2][0])
+                    if v[inx][1] == 0:
+                        continue
+                    if time_diff < v[inx][1]:
+                        temp_confl += [[v[inx][2], v[inx][3]]]
+                        cnt += 1
+        if cnt > 3:
+            confl_arr += temp_confl
+    return np.unique(confl_arr, axis=0)
+
+
+def count_confl(x, y, z, un_coord_dict):
+    try:
+        v = un_coord_dict[str(int(x)) + "_" + str(int(y)) + "_" + str(int(z))]
+    except:
+        return 0
+    cnt = 0
+    for inx in range(len(v)):
+        for inx_2 in range(inx, len(v)):
+            time_diff = np.abs(v[inx][0] - v[inx_2][0])
+            if time_diff < v[inx][1]:
+                cnt += 1
+    return cnt
+
+
+def penalty_cnt(bit_string, confl_arr, traj_arr, un_coord_dict):
+    p_cnt = 0
+    for bit, (tr_inx, pn_inx) in zip(bit_string, confl_arr):
+        x = int(traj_arr[tr_inx][pn_inx]["x"])
+        y = int(traj_arr[tr_inx][pn_inx]["y"])
+        z_old = int(traj_arr[tr_inx][pn_inx]["z"])
+        z_new = int(traj_arr[tr_inx][pn_inx]["z"] - 20 + bit * 40)
+
+        cnt_old = count_confl(x, y, z_old, un_coord_dict)
+        cnt_new = count_confl(x, y, z_new, un_coord_dict)
+        # if cnt_old<=cnt_new:
+        p_cnt += cnt_new - cnt_old
+    return p_cnt
+
+
+def penalty_cnt_bit(bit_string, confl_arr, traj_arr, un_coord_dict):
+    p_cnt = 0
+    for bit, (tr_inx, pn_inx) in zip(bit_string, confl_arr):
+        x = int(traj_arr[tr_inx][pn_inx]["x"])
+        y = int(traj_arr[tr_inx][pn_inx]["y"])
+        z_old = int(traj_arr[tr_inx][pn_inx]["z"])
+        z_new = int(traj_arr[tr_inx][pn_inx]["z"] - 20 + bit * 40)
+
+        cnt_old = comp_confl(x, y, z_old, un_coord_dict, [tr_inx, pn_inx])
+        cnt_new = comp_confl(x, y, z_new, un_coord_dict, [tr_inx, pn_inx])
+
+        # if cnt_old<=cnt_new:
+        p_cnt += cnt_new - cnt_old
+    return p_cnt
+
+
+def bitstr_to_traj(bit_string, confl_arr, input_traj, un_coord_dict):
+    """ Take bitstring and return changed trajectory.
+    The bit value changed the flight altitude by +-20FL at the confilct point."""
+    traj = deepcopy(input_traj)
+    for bit, confl in zip(bit_string, confl_arr):
+        traj = binary_to_traj(bit, confl, traj, un_coord_dict)
+    return traj
+
+
+def binary_to_traj(b_val, conflict_point, input_traj, un_coord_dict):
+    """ Take binary value and translate it to changed trajectory array """
+    traj = deepcopy(input_traj)
+
+    confl_tuple_arr = []
+    for point in traj[conflict_point[0]]:
+        x = point["x"]
+        y = point["y"]
+        z = point["z"]
+        confl_tuple_arr.append(xyz_to_tuple(x, y, z))
+
+    i = 0
+    continuous_confl = True
+    while continuous_confl:
+        try:
+            new_confl_cnt = penalty_cnt_bit((b_val,), [[conflict_point[0], conflict_point[1] + i]], input_traj,
+                                            un_coord_dict)
+        except:
+            continuous_confl = False
+            i -= 1
+            break
+
+        if new_confl_cnt < 0:
+            i += 1
+        else:
+            continuous_confl = False
+            break
+    for cnt, point in enumerate(confl_tuple_arr[conflict_point[1]:conflict_point[1] + i + 1]):
+        confl_tuple_arr[conflict_point[1] + cnt] = (point[0], point[1], point[2] - 1 + b_val * 2)
+
+    traj[conflict_point[0]] = tuple_path_to_trajec(confl_tuple_arr, conflict_point[0])
+    return traj
+
+
+def binary_to_traj_2(b_val, conflict_point, input_traj):
     """ Take binary value and translate it to changed trajectory array """
     traj = deepcopy(input_traj)
 

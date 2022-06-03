@@ -4,8 +4,8 @@ import utils.utils as ut
 import networkx as nx
 import pandas as pd
 
-G = nx.read_gpickle("data/w_graph.pkl")
-flight_df = pd.read_csv("data/flights.csv", sep=";")
+G = nx.read_gpickle("../data/w_graph.pkl")
+flight_df = pd.read_csv("../data/flights.csv", sep=";")
 
 
 def gen_rand_path_z(G, x_s, y_s, z, x_e, y_e, z_e, size):
