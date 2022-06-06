@@ -9,6 +9,9 @@ from qiskit import Aer
 from qiskit.quantum_info import Statevector
 from copy import deepcopy
 
+import matplotlib.patheffects as pe
+import matplotlib.pyplot as plt
+
 max_x = 30
 min_x = -30
 
@@ -905,3 +908,80 @@ def get_classical_traj():
                          "t": traj[i]["t"] + np.timedelta64(point_t, 's'), "delta_t": np.timedelta64(point_t, 's')})
         classical_trajectory_arr.append(traj)
     return classical_trajectory_arr
+
+
+def plot_paths(traj_arr, n_qubits, best_path_z=""):
+    first = deepcopy(traj_arr)
+    fig = plt.figure(figsize=(12, 12))
+    ax = fig.add_subplot(projection='3d')
+    ax.set_xlabel("Longitude")
+    ax.set_ylabel("Latitude")
+    ax.set_zlabel("Flightlevel")
+    for cnt, traj in enumerate(first):
+        plot_x = [temp["x"] for temp in traj]
+        plot_y = [temp["y"] for temp in traj]
+        plot_z = [temp["z"] for temp in traj]
+        ax.plot(plot_x, plot_y, plot_z, color="#003153", mec='black', marker="o", ms=0,
+                path_effects=[pe.Stroke(linewidth=5, foreground='black'), pe.Normal()])  # [[0,0.1922,0.3255]])
+
+    if best_path_z != "":
+        plot_x = [temp["x"] for temp in best_path_z]
+        plot_y = [temp["y"] for temp in best_path_z]
+        plot_z = [temp["z"] for temp in best_path_z]
+        ax.plot(plot_x, plot_y, plot_z, color="#FFD700", mec='black', marker="o", ms=0,
+                path_effects=[pe.Stroke(linewidth=5, foreground='black'), pe.Normal()])  # [[0,0.1922,0.3255]])
+    plt.draw()
+
+
+def gen_rand_path_z(G, z_e, s_inx, size, n_qubits):
+    """ Compute random paths between start and end point for single final altitudes """
+
+    z_arr = np.arange(100, 400, 20)
+    rand_traj_arr = []
+
+    lst = list(itertools.product([0, 1], repeat=n_qubits))
+
+    _, t, z, x_s, y_s, x_e, y_e = flight_df.to_numpy()[s_inx]
+
+    rand_paths = [itertools.islice(
+        nx.shortest_simple_paths(G, source=xyz_to_tuple(x_s, y_s, z), target=xyz_to_tuple(x_e, y_e, z_e),
+                                 weight="w"),
+        size)]
+    tuple_path_arr = []
+    try:
+        for path_z in list(rand_paths):
+            for path in path_z:
+                tuple_path_arr.append(path)
+    except:
+        1
+
+    for tup in tuple_path_arr:
+        rand_traj_arr.append(tuple_path_to_trajec(tup, start_index=s_inx))
+
+    return rand_traj_arr
+
+
+def find_best_path(traj_arr, n_qubits, run_hardware):
+    basis_state_to_trajec = {}
+    lst = list(itertools.product([0, 1], repeat=n_qubits))
+    for cnt, b_state in enumerate(lst):
+        try:
+            basis_state_to_trajec[convert_tuple(b_state)] = traj_arr[cnt]
+        except:
+            basis_state_to_trajec[convert_tuple(b_state)] = traj_arr[0]
+
+    state_arr = np.array([convert_tuple(l) for l in lst])
+
+    return find_min_cost_quantum(state_arr, basis_state_to_trajec, run_hardware)[1]
+
+
+def gen_rand_path_all_z(G, s_inx, size, n_qubits, run_hardware):
+    z_arr = np.arange(100, 400, 20)
+    _, t, z, x_s, y_s, x_e, y_e = flight_df.to_numpy()[s_inx]
+    z_traj_arr = []
+    for z_e in z_arr:
+        random_path_arr = gen_rand_path_z(G, z_e, s_inx, size, n_qubits)
+        best_path_z = find_best_path(random_path_arr, n_qubits, run_hardware)
+        z_traj_arr.append(best_path_z)
+
+    return z_traj_arr
