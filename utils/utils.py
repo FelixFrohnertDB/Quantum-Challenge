@@ -961,7 +961,7 @@ def gen_rand_path_z(G, z_e, s_inx, size, n_qubits):
     return rand_traj_arr
 
 
-def find_best_path(traj_arr, n_qubits, run_hardware):
+def find_best_path(traj_arr, n_qubits, run_hardware, device=""):
     basis_state_to_trajec = {}
     lst = list(itertools.product([0, 1], repeat=n_qubits))
     for cnt, b_state in enumerate(lst):
@@ -972,16 +972,16 @@ def find_best_path(traj_arr, n_qubits, run_hardware):
 
     state_arr = np.array([convert_tuple(l) for l in lst])
 
-    return find_min_cost_quantum(state_arr, basis_state_to_trajec, run_hardware)[1]
+    return find_min_cost_quantum(state_arr, basis_state_to_trajec, run_hardware, device)[1]
 
 
-def gen_rand_path_all_z(G, s_inx, size, n_qubits, run_hardware):
+def gen_rand_path_all_z(G, s_inx, size, n_qubits, run_hardware, device=""):
     z_arr = np.arange(100, 400, 20)
     _, t, z, x_s, y_s, x_e, y_e = flight_df.to_numpy()[s_inx]
     z_traj_arr = []
     for z_e in z_arr:
         random_path_arr = gen_rand_path_z(G, z_e, s_inx, size, n_qubits)
-        best_path_z = find_best_path(random_path_arr, n_qubits, run_hardware)
+        best_path_z = find_best_path(random_path_arr, n_qubits, run_hardware, device)
         z_traj_arr.append(best_path_z)
 
     return z_traj_arr
