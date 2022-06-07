@@ -22,6 +22,6 @@ This repository is structured as follows: The utils folder contains code used in
 
 - Preliminaries: Contains code to adapt the provided data for the appropriate problem formulations.
 - Classical Optimization: Contains the two classical trajectory optimizations that will be used as benchmarks
-- Trajectory Optimization: Contains the quantum trajectory optimization run on a 5-qubit simulator and a 5-qubit IBM processor
+- Trajectory Optimization: Contains the quantum trajectory optimization run on a 16-qubit simulator and a 16-qubit IBM processor
 - Trajectory Visualization: Contains the visualization of the trajectories calculated above.
 - Conflict Resolution: Contains the QUBO formulation of the conflict resolution problem from the computed trajectories, solved with Filtering-VQEs.
