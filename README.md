@@ -28,5 +28,5 @@ This repository is structured as follows: The utils folder contains code used in
 
 
  
-![alt text]()
-![alt text](https://github.com/FelixFrohnertDB/Quantum-Challenge/Certificate_Felix Frohnert-1.png?raw=true)
+
+![alt text](https://github.com/FelixFrohnertDB/Quantum-Challenge/blob/main/Certificate_Felix Frohnert-1.png?raw=true)
