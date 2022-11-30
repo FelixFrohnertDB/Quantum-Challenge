@@ -25,3 +25,8 @@ This repository is structured as follows: The utils folder contains code used in
 - Trajectory Optimization: Contains the quantum trajectory optimization run on a 5-qubit simulator and a 5-qubit IBM processor
 - Trajectory Visualization: Contains the visualization of the trajectories calculated above.
 - Conflict Resolution: Contains the QUBO formulation of the conflict resolution problem from the computed trajectories, solved with Filtering-VQEs.
+
+
+ 
+![alt text](Certificate_Felix Frohnert-1.png)
+
