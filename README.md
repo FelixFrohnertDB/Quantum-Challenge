@@ -17,6 +17,23 @@ this problem efficiently on a quantum computer, the problem was split into two s
 resulting flight plan. The first problem is solved using Grover’s search algorithms, and the second
 problem is solved using the filtering variational quantum eigensolver.
 
+# Files in the repository
+    Quantum-Challenge
+      |-- cluster
+            |-- templates
+                    |-- go.html # classification result page of web app
+                    |-- master.html # main page of web app
+            |-- run.py # Flask file that runs app
+      |-- data
+            |-- disaster_categories.csv # data to process
+            |-- disaster_message.csv # data to process 
+            |-- DisasterResponse.db # database to save clean data to
+            |-- process_data.py
+      |-- models
+            |-- classifier.pkl # saved model
+            |-- train_classifier.py
+      |-- README
+      
 This repository is structured as follows: The utils folder contains code used in various calculations, which is outsourced for better readability. The data folder contains the data provided for the challenge and the results of the various experiment runs. The notebook folder contains the main body of work on this Challenge. It is divided into the following notebooks: 
  
 
