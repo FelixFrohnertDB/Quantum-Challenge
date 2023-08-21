@@ -20,31 +20,25 @@ problem is solved using the filtering variational quantum eigensolver.
 # Files in the repository
     Quantum-Challenge
       |-- cluster
-            |-- bada_data.csv # 
-            |-- controlscript.pbs # 
-            |-- launch.sh #
-            |-- q_opt_traj.npy #
-            |-- run.py #
+            |-- bada_data.csv # Base of Aircraft Data detailing ﻿speed, fuel consumption and other parameters as a function of flight level
+            |-- controlscript.pbs # cluster control
+            |-- launch.sh # cluster control
+            |-- q_opt_traj.npy # output, array of generated trajectories
+            |-- run.py # launch script
       |-- data
-            |-- disaster_categories.csv # data to process
-            |-- disaster_message.csv # data to process 
-            |-- DisasterResponse.db # database to save clean data to
-            |-- process_data.py
-      |-- models
-            |-- classifier.pkl # saved model
-            |-- train_classifier.py
+            |-- climate_df.pkl # climate impact of burning CO2 as a function of coordiante and time 
+            |-- climb_df.pkl # velocity and fuel consumption data for climbing aircrafts
+            |-- cruise_df.pkl # velocity and fuel consumption data for cruising aircrafts
+            |-- descent_df.pkl # velocity and fuel consumption data for descending aircrafts 
+            |-- flights.csv # coordinates of start and end point of flights 
+      |-- notebooks
+            |-- Preliminaries # Contains code to adapt the provided data for the appropriate problem formulations
+            |-- Classical Optimization # Contains the two classical trajectory optimizations that will be used as benchmarks
+            |-- Trajectory Optimization # Contains the quantum trajectory optimization run on a 16-qubit simulator and a 16-qubit IBM processor
+            |-- Trajectory Visualization # Contains the visualization of the trajectories calculated above
+            |-- Conflict Resolution # Contains the QUBO formulation of the conflict resolution problem from the computed trajectories, solved with Filtering-VQEs
+      |-- utils
+            |-- utils.py # module with various functions 
       |-- README
       
-This repository is structured as follows: The utils folder contains code used in various calculations, which is outsourced for better readability. The data folder contains the data provided for the challenge and the results of the various experiment runs. The notebook folder contains the main body of work on this Challenge. It is divided into the following notebooks: 
- 
-
-- Preliminaries: Contains code to adapt the provided data for the appropriate problem formulations.
-- Classical Optimization: Contains the two classical trajectory optimizations that will be used as benchmarks
-- Trajectory Optimization: Contains the quantum trajectory optimization run on a 16-qubit simulator and a 16-qubit IBM processor
-- Trajectory Visualization: Contains the visualization of the trajectories calculated above.
-- Conflict Resolution: Contains the QUBO formulation of the conflict resolution problem from the computed trajectories, solved with Filtering-VQEs.
-
-
- 
-
 ![alt text](img.png)
